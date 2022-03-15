@@ -63,24 +63,24 @@ pub struct CallResult {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct AggregateResult {
-    pub datas: Vec<CallResult>,
+    pub return_data: Vec<CallResult>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct BlockAggregateResult {
     pub block: u64,
-    pub datas: Vec<CallResult>,
+    pub return_data: Vec<CallResult>,
 }
 
 impl AggregateResult {
-    pub fn from_datas(datas: Vec<CallResult>) -> AggregateResult {
-        AggregateResult { datas }
+    pub fn from_return_data(return_data: Vec<CallResult>) -> AggregateResult {
+        AggregateResult { return_data }
     }
 }
 
 impl BlockAggregateResult {
-    pub fn from_datas(block: u64, datas: Vec<CallResult>) -> BlockAggregateResult {
-        BlockAggregateResult { block, datas }
+    pub fn from_return_data(block: u64, return_data: Vec<CallResult>) -> BlockAggregateResult {
+        BlockAggregateResult { block, return_data }
     }
 }
 

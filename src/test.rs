@@ -47,8 +47,8 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(base64::encode(x), q.datas.first().unwrap().data.to_base64());
-        assert_eq!(true, q.datas.first().unwrap().success);
+        assert_eq!(base64::encode(x), q.return_data.first().unwrap().data.to_base64());
+        assert_eq!(true, q.return_data.first().unwrap().success);
 
         let q: AggregateResult = from_binary(
             &query(
@@ -71,11 +71,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(q.datas.len(), 2);
-        assert_eq!(base64::encode(x), q.datas.first().unwrap().data.to_base64());
-        assert_eq!(true, q.datas.first().unwrap().success);
-        assert_eq!(base64::encode(x), q.datas.last().unwrap().data.to_base64());
-        assert_eq!(true, q.datas.last().unwrap().success);
+        assert_eq!(q.return_data.len(), 2);
+        assert_eq!(base64::encode(x), q.return_data.first().unwrap().data.to_base64());
+        assert_eq!(true, q.return_data.first().unwrap().success);
+        assert_eq!(base64::encode(x), q.return_data.last().unwrap().data.to_base64());
+        assert_eq!(true, q.return_data.last().unwrap().success);
     }
 
     #[test_case(""; "empty")]
@@ -110,10 +110,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(q.datas.len(), 2);
+        assert_eq!(q.return_data.len(), 2);
 
-        let first: AnotherStructResponse = from_binary(&q.datas.first().unwrap().data).unwrap();
-        let last: AnotherStructResponse = from_binary(&q.datas.last().unwrap().data).unwrap();
+        let first: AnotherStructResponse = from_binary(&q.return_data.first().unwrap().data).unwrap();
+        let last: AnotherStructResponse = from_binary(&q.return_data.last().unwrap().data).unwrap();
 
         assert_eq!(first.result, x);
         assert_eq!(first.another_result, x.to_uppercase());
@@ -155,7 +155,7 @@ mod tests {
         )
         .unwrap();
 
-        for (i, bin) in q.datas.iter().enumerate() {
+        for (i, bin) in q.return_data.iter().enumerate() {
             assert_eq!(
                 match i {
                     _ if error_at.contains(&i) => String::new(),
@@ -177,7 +177,7 @@ mod tests {
 
         match error_at[..] {
             [] => assert!(
-                matches!(from_binary::<AggregateResult>(&q.unwrap()).unwrap(), x if x.datas.len() == total)
+                matches!(from_binary::<AggregateResult>(&q.unwrap()).unwrap(), x if x.return_data.len() == total)
             ),
             _ => assert!(matches!(q.unwrap_err(), StdError::GenericErr { msg: _ })),
         }
@@ -227,7 +227,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut it = q.datas.iter();
+        let mut it = q.return_data.iter();
         assert_eq!(base64::encode(b"1"), it.next().unwrap().data.to_base64());
         assert_eq!(base64::encode(b"2"), it.next().unwrap().data.to_base64());
         assert_eq!(base64::encode(b"3"), it.next().unwrap().data.to_base64());
