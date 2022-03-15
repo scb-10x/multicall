@@ -3,8 +3,6 @@ use cosmwasm_std::{
     StdResult, SystemResult, WasmQuery,
 };
 
-use std::ptr;
-
 use crate::{
     error::{QueryError, QueryResult},
     msg::{AggregateResult, BlockAggregateResult, Call, CallOptional, CallResult},
@@ -63,31 +61,21 @@ pub fn block_try_aggregate_optional(
     Ok(BlockAggregateResult::from_datas(block, result.datas))
 }
 
-pub fn aggregrate(deps: Deps, mut queries: Vec<Call>) -> StdResult<AggregateResult> {
-    let mut i = queries.len();
-    let mut result: Vec<CallResult> = vec![CallResult::default(); i];
+pub fn aggregrate(deps: Deps, queries: Vec<Call>) -> StdResult<AggregateResult> {
+    let n = queries.len();
+    let mut result: Vec<CallResult> = vec![CallResult::default(); n];
 
-    while let Some(target) = queries.pop() {
-        let qr = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.address, target.data)?),
-        ) {
-            Ok(res) => Some(res),
+    for i in 0..n {
+        let query = queries[i].clone();
+        let wasm = &process_wasm_query(query.address, query.data)?;
+        let res = deps.querier.raw_query(wasm);
+        let data = match process_query_result(res) {
+            Ok(res) => res,
             Err(err) => return Err(err.std_at_index(i)),
         };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(
-                    p.offset(i as isize),
-                    CallResult {
-                        success: true,
-                        data: res,
-                    },
-                );
-            }
+        result[i] = CallResult {
+            success: true,
+            data,
         };
     }
 
@@ -98,41 +86,33 @@ pub fn try_aggregate(
     deps: Deps,
     require_success: Option<bool>,
     include_cause: Option<bool>,
-    mut queries: Vec<Call>,
+    queries: Vec<Call>,
 ) -> StdResult<AggregateResult> {
-    let mut i = queries.len();
-    let mut result: Vec<CallResult> = vec![CallResult::default(); i];
-    let req = require_success.unwrap_or(false);
-    let incl = include_cause.unwrap_or(false);
-    
+    let n = queries.len();
+    let mut result: Vec<CallResult> = vec![CallResult::default(); n];
 
-    while let Some(target) = queries.pop() {
-        let (suc, qr) = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.address, target.data)?),
-        ) {
-            Ok(res) => (true, Some(res)),
-            Err(err) => match req {
+    for i in 0..n {
+        let query = queries[i].clone();
+        let wasm = &process_wasm_query(query.address, query.data)?;
+        let res = deps.querier.raw_query(wasm);
+        result[i] = match process_query_result(res) {
+            Ok(res) => CallResult {
+                success: true,
+                data: res,
+            },
+            Err(err) => match require_success.unwrap_or(false) {
                 true => return Err(err.std_at_index(i)),
-                false => match incl {
-                    true => (false, Some(to_binary(&err.to_string())?)),
-                    false => (false, None),
+                false => match include_cause.unwrap_or(false) {
+                    true => CallResult {
+                        success: false,
+                        data: to_binary(&err.to_string())?,
+                    },
+                    false => CallResult {
+                        success: false,
+                        data: Binary::default(),
+                    },
                 },
             },
-        };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(
-                    p.offset(i as isize),
-                    CallResult {
-                        success: suc,
-                        data: res,
-                    },
-                );
-            }
         };
     }
 
@@ -142,39 +122,33 @@ pub fn try_aggregate(
 pub fn try_aggregate_optional(
     deps: Deps,
     include_cause: Option<bool>,
-    mut queries: Vec<CallOptional>,
+    queries: Vec<CallOptional>,
 ) -> StdResult<AggregateResult> {
-    let mut i = queries.len();
-    let mut result: Vec<CallResult> = vec![CallResult::default(); i];
-    let incl = include_cause.unwrap_or(false);
+    let n = queries.len();
+    let mut result: Vec<CallResult> = vec![CallResult::default(); n];
 
-    while let Some(target) = queries.pop() {
-        let (suc, qr) = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.address, target.data)?),
-        ) {
-            Ok(res) => (true, Some(res)),
-            Err(err) => match target.require_success {
+    for i in 0..n {
+        let query = queries[i].clone();
+        let wasm = &process_wasm_query(query.address, query.data)?;
+        let res = deps.querier.raw_query(wasm);
+        result[i] = match process_query_result(res) {
+            Ok(res) => CallResult {
+                success: true,
+                data: res,
+            },
+            Err(err) => match query.require_success {
                 true => return Err(err.std_at_index(i)),
-                false => match incl {
-                    true => (false, Some(to_binary(&err.to_string())?)),
-                    false => (false, None),
+                false => match include_cause.unwrap_or(false) {
+                    true => CallResult {
+                        success: false,
+                        data: to_binary(&err.to_string())?,
+                    },
+                    false => CallResult {
+                        success: false,
+                        data: Binary::default(),
+                    },
                 },
             },
-        };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(
-                    p.offset(i as isize),
-                    CallResult {
-                        success: suc,
-                        data: res,
-                    },
-                );
-            }
         };
     }
 
