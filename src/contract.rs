@@ -1,14 +1,17 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
-    entry_point, to_binary, to_vec, Addr, Binary, ContractResult, Deps, DepsMut, Empty, Env,
-    MessageInfo, QuerierResult, QueryRequest, Response, StdResult, SystemResult, WasmQuery,
+    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
 };
 use cw2::{get_contract_version, set_contract_version};
-use std::ptr;
 
 use crate::{
-    error::{ContractError, QueryError, QueryResult},
+    error::ContractError,
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg},
+    querier::{
+        aggregrate, block_aggregrate, block_try_aggregate_optional, block_try_aggregrate,
+        r_aggregrate, r_block_aggregrate, r_block_try_aggregate_optional, r_block_try_aggregrate,
+        r_try_aggregate, r_try_aggregate_optional, try_aggregate, try_aggregate_optional,
+    },
 };
 
 // version info for migration info
@@ -43,110 +46,82 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::ContractVersion {} => to_binary(&get_contract_version(deps.storage)?),
+        QueryMsg::RAggregate { queries } => to_binary(&r_aggregrate(deps, queries)?),
+        QueryMsg::RTryAggregate {
+            require_success,
+            include_cause,
+            queries,
+        } => to_binary(&r_try_aggregate(
+            deps,
+            require_success,
+            include_cause,
+            queries,
+        )?),
+        QueryMsg::RTryAggregateOptional {
+            queries,
+            include_cause,
+        } => to_binary(&r_try_aggregate_optional(deps, include_cause, queries)?),
+        QueryMsg::RBlockAggregate { queries } => {
+            to_binary(&r_block_aggregrate(deps, env, queries)?)
+        }
+        QueryMsg::RBlockTryAggregate {
+            require_success,
+            include_cause,
+            queries,
+        } => to_binary(&r_block_try_aggregrate(
+            deps,
+            env,
+            require_success,
+            include_cause,
+            queries,
+        )?),
+        QueryMsg::RBlockTryAggregateOptional {
+            include_cause,
+            queries,
+        } => to_binary(&r_block_try_aggregate_optional(
+            deps,
+            env,
+            include_cause,
+            queries,
+        )?),
         QueryMsg::Aggregate { queries } => to_binary(&aggregrate(deps, queries)?),
         QueryMsg::TryAggregate {
             require_success,
+            include_cause,
             queries,
-        } => to_binary(&try_aggregate(deps, require_success, queries)?),
-        QueryMsg::TryAggregateOptional { queries } => {
-            to_binary(&try_aggregate_optional(deps, queries)?)
-        }
+        } => to_binary(&try_aggregate(
+            deps,
+            require_success,
+            include_cause,
+            queries,
+        )?),
+        QueryMsg::TryAggregateOptional {
+            include_cause,
+            queries,
+        } => to_binary(&try_aggregate_optional(deps, include_cause, queries)?),
+        QueryMsg::BlockAggregate { queries } => to_binary(&block_aggregrate(deps, env, queries)?),
+        QueryMsg::BlockTryAggregate {
+            require_success,
+            include_cause,
+            queries,
+        } => to_binary(&block_try_aggregrate(
+            deps,
+            env,
+            require_success,
+            include_cause,
+            queries,
+        )?),
+        QueryMsg::BlockTryAggregateOptional {
+            include_cause,
+            queries,
+        } => to_binary(&block_try_aggregate_optional(
+            deps,
+            env,
+            include_cause,
+            queries,
+        )?),
     }
-}
-
-fn process_query_result(result: QuerierResult) -> QueryResult {
-    match result {
-        SystemResult::Err(system_err) => Err(QueryError::System(system_err.to_string())),
-        SystemResult::Ok(ContractResult::Err(contract_err)) => {
-            Err(QueryError::Contract(contract_err))
-        }
-        SystemResult::Ok(ContractResult::Ok(value)) => Ok(value),
-    }
-}
-
-fn process_wasm_query(address: Addr, binary: Binary) -> StdResult<Vec<u8>> {
-    to_vec(&QueryRequest::<Empty>::Wasm(WasmQuery::Smart {
-        contract_addr: address.to_string(),
-        msg: binary,
-    }))
-}
-
-fn aggregrate(deps: Deps, mut queries: Vec<(Addr, Binary)>) -> StdResult<Vec<Binary>> {
-    let mut result: Vec<Binary> = Vec::with_capacity(queries.len());
-    while let Some(target) = queries.pop() {
-        result.insert(
-            0,
-            process_query_result(
-                deps.querier
-                    .raw_query(&process_wasm_query(target.0, target.1)?),
-            )?,
-        );
-    }
-
-    Ok(result)
-}
-
-fn try_aggregate(
-    deps: Deps,
-    require_success: Option<bool>,
-    mut queries: Vec<(Addr, Binary)>,
-) -> StdResult<Vec<Binary>> {
-    let mut i = queries.len();
-    let mut result: Vec<Binary> = vec![Binary::default(); i];
-    let req = require_success.unwrap_or(false);
-    while let Some(target) = queries.pop() {
-        let qr = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.0, target.1)?),
-        ) {
-            Ok(res) => Some(res),
-            Err(err) => match req {
-                true => return Err(err.std_at_index(i)),
-                false => None,
-            },
-        };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(p.offset(i as isize), res);
-            }
-        };
-    }
-
-    Ok(result)
-}
-
-fn try_aggregate_optional(
-    deps: Deps,
-    mut queries: Vec<(bool, Addr, Binary)>,
-) -> StdResult<Vec<Binary>> {
-    let mut i = queries.len();
-    let mut result: Vec<Binary> = vec![Binary::default(); i];
-    while let Some(target) = queries.pop() {
-        let qr = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.1, target.2)?),
-        ) {
-            Ok(res) => Some(res),
-            Err(err) => match target.0 {
-                true => return Err(err.std_at_index(i)),
-                false => None,
-            },
-        };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(p.offset(i as isize), res);
-            }
-        };
-    }
-
-    Ok(result)
 }

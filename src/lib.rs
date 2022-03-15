@@ -1,6 +1,7 @@
 pub mod contract;
 mod error;
 pub mod msg;
+pub mod querier;
 
 #[cfg(test)]
 mod test;

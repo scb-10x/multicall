@@ -12,10 +12,10 @@ pub enum ContractError {
 
 #[derive(Error, Debug)]
 pub enum QueryError {
-    #[error("{0}")]
+    #[error("Querier system error: {0}")]
     System(String),
 
-    #[error("{0}")]
+    #[error("Querier contract error: {0}")]
     Contract(String),
 }
 
@@ -33,10 +33,7 @@ impl QueryError {
 
 impl Into<String> for QueryError {
     fn into(self) -> String {
-        match self {
-            QueryError::System(i) => format!("Querier system error: {}", i),
-            QueryError::Contract(i) => format!("Querier system error: {}", i),
-        }
+        self.to_string()
     }
 }
 
