@@ -1,1 +1,1 @@
-81c4e6c87395a9c12feddaeaefdf085b929ab8b7999c8ef7661786b0342d04f5  ./target/wasm32-unknown-unknown/release/multicall.wasm
+85002be0cc753f283d0cc82935841062ba426491c6c97fbb24053feb0cadcd59  ./target/wasm32-unknown-unknown/release/multicall.wasm
