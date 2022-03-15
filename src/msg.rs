@@ -16,30 +16,6 @@ pub enum ExecuteMsg {}
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     ContractVersion {},
-    RAggregate {
-        queries: Vec<(Addr, Binary)>,
-    },
-    RTryAggregate {
-        require_success: Option<bool>,
-        include_cause: Option<bool>,
-        queries: Vec<(Addr, Binary)>,
-    },
-    RTryAggregateOptional {
-        include_cause: Option<bool>,
-        queries: Vec<(bool, Addr, Binary)>,
-    },
-    RBlockAggregate {
-        queries: Vec<(Addr, Binary)>,
-    },
-    RBlockTryAggregate {
-        require_success: Option<bool>,
-        include_cause: Option<bool>,
-        queries: Vec<(Addr, Binary)>,
-    },
-    RBlockTryAggregateOptional {
-        include_cause: Option<bool>,
-        queries: Vec<(bool, Addr, Binary)>,
-    },
     Aggregate {
         queries: Vec<Call>,
     },

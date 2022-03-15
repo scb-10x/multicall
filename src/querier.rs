@@ -27,141 +27,6 @@ fn process_wasm_query(address: Addr, binary: Binary) -> StdResult<Vec<u8>> {
     }))
 }
 
-pub fn r_block_aggregrate(
-    deps: Deps,
-    env: Env,
-    queries: Vec<(Addr, Binary)>,
-) -> StdResult<(u64, Vec<Binary>)> {
-    let block = env.block.height;
-    let result = r_aggregrate(deps, queries)?;
-
-    Ok((block, result))
-}
-
-pub fn r_block_try_aggregrate(
-    deps: Deps,
-    env: Env,
-    require_success: Option<bool>,
-    include_cause: Option<bool>,
-    queries: Vec<(Addr, Binary)>,
-) -> StdResult<(u64, Vec<Binary>)> {
-    let block = env.block.height;
-    let result = r_try_aggregate(deps, require_success, include_cause, queries)?;
-
-    Ok((block, result))
-}
-
-pub fn r_block_try_aggregate_optional(
-    deps: Deps,
-    env: Env,
-    include_cause: Option<bool>,
-    queries: Vec<(bool, Addr, Binary)>,
-) -> StdResult<(u64, Vec<Binary>)> {
-    let block = env.block.height;
-    let result = r_try_aggregate_optional(deps, include_cause, queries)?;
-
-    Ok((block, result))
-}
-
-pub fn r_aggregrate(deps: Deps, mut queries: Vec<(Addr, Binary)>) -> StdResult<Vec<Binary>> {
-    let mut i = queries.len();
-    let mut result: Vec<Binary> = vec![Binary::default(); i];
-
-    while let Some(target) = queries.pop() {
-        let qr = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.0, target.1)?),
-        ) {
-            Ok(res) => Some(res),
-            Err(err) => return Err(err.std_at_index(i)),
-        };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(p.offset(i as isize), res);
-            }
-        };
-    }
-
-    Ok(result)
-}
-
-pub fn r_try_aggregate(
-    deps: Deps,
-    require_success: Option<bool>,
-    include_cause: Option<bool>,
-    mut queries: Vec<(Addr, Binary)>,
-) -> StdResult<Vec<Binary>> {
-    let mut i = queries.len();
-    let mut result: Vec<Binary> = vec![Binary::default(); i];
-    let req = require_success.unwrap_or(false);
-    let incl = include_cause.unwrap_or(false);
-
-    while let Some(target) = queries.pop() {
-        let qr = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.0, target.1)?),
-        ) {
-            Ok(res) => Some(res),
-            Err(err) => match req {
-                true => return Err(err.std_at_index(i)),
-                false => match incl {
-                    true => Some(to_binary(&err.to_string())?),
-                    false => None,
-                },
-            },
-        };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(p.offset(i as isize), res);
-            }
-        };
-    }
-
-    Ok(result)
-}
-
-pub fn r_try_aggregate_optional(
-    deps: Deps,
-    include_cause: Option<bool>,
-    mut queries: Vec<(bool, Addr, Binary)>,
-) -> StdResult<Vec<Binary>> {
-    let mut i = queries.len();
-    let mut result: Vec<Binary> = vec![Binary::default(); i];
-    let incl = include_cause.unwrap_or(false);
-
-    while let Some(target) = queries.pop() {
-        let qr = match process_query_result(
-            deps.querier
-                .raw_query(&process_wasm_query(target.1, target.2)?),
-        ) {
-            Ok(res) => Some(res),
-            Err(err) => match target.0 {
-                true => return Err(err.std_at_index(i)),
-                false => match incl {
-                    true => Some(to_binary(&err.to_string())?),
-                    false => None,
-                },
-            },
-        };
-
-        unsafe {
-            i -= 1;
-            let p = result.as_mut_ptr();
-            if let Some(res) = qr {
-                ptr::write(p.offset(i as isize), res);
-            }
-        };
-    }
-
-    Ok(result)
-}
-
 pub fn block_aggregrate(
     deps: Deps,
     env: Env,
@@ -239,6 +104,7 @@ pub fn try_aggregate(
     let mut result: Vec<CallResult> = vec![CallResult::default(); i];
     let req = require_success.unwrap_or(false);
     let incl = include_cause.unwrap_or(false);
+    
 
     while let Some(target) = queries.pop() {
         let (suc, qr) = match process_query_result(

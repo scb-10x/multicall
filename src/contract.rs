@@ -9,8 +9,7 @@ use crate::{
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg},
     querier::{
         aggregrate, block_aggregrate, block_try_aggregate_optional, block_try_aggregrate,
-        r_aggregrate, r_block_aggregrate, r_block_try_aggregate_optional, r_block_try_aggregrate,
-        r_try_aggregate, r_try_aggregate_optional, try_aggregate, try_aggregate_optional,
+        try_aggregate, try_aggregate_optional,
     },
 };
 
@@ -49,44 +48,6 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::ContractVersion {} => to_binary(&get_contract_version(deps.storage)?),
-        QueryMsg::RAggregate { queries } => to_binary(&r_aggregrate(deps, queries)?),
-        QueryMsg::RTryAggregate {
-            require_success,
-            include_cause,
-            queries,
-        } => to_binary(&r_try_aggregate(
-            deps,
-            require_success,
-            include_cause,
-            queries,
-        )?),
-        QueryMsg::RTryAggregateOptional {
-            queries,
-            include_cause,
-        } => to_binary(&r_try_aggregate_optional(deps, include_cause, queries)?),
-        QueryMsg::RBlockAggregate { queries } => {
-            to_binary(&r_block_aggregrate(deps, env, queries)?)
-        }
-        QueryMsg::RBlockTryAggregate {
-            require_success,
-            include_cause,
-            queries,
-        } => to_binary(&r_block_try_aggregrate(
-            deps,
-            env,
-            require_success,
-            include_cause,
-            queries,
-        )?),
-        QueryMsg::RBlockTryAggregateOptional {
-            include_cause,
-            queries,
-        } => to_binary(&r_block_try_aggregate_optional(
-            deps,
-            env,
-            include_cause,
-            queries,
-        )?),
         QueryMsg::Aggregate { queries } => to_binary(&aggregrate(deps, queries)?),
         QueryMsg::TryAggregate {
             require_success,
