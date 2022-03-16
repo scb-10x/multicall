@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod unit_tests {
     use std::collections::HashSet;
 
     use crate::{

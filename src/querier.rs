@@ -1,3 +1,5 @@
+use std::ptr;
+
 use cosmwasm_std::{
     to_binary, to_vec, Addr, Binary, ContractResult, Deps, Empty, Env, QuerierResult, QueryRequest,
     StdResult, SystemResult, WasmQuery,
@@ -33,7 +35,10 @@ pub fn block_aggregrate(
     let block = env.block.height;
     let result = aggregrate(deps, queries)?;
 
-    Ok(BlockAggregateResult::from_return_data(block, result.return_data))
+    Ok(BlockAggregateResult::from_return_data(
+        block,
+        result.return_data,
+    ))
 }
 
 pub fn block_try_aggregrate(
@@ -46,7 +51,10 @@ pub fn block_try_aggregrate(
     let block = env.block.height;
     let result = try_aggregate(deps, require_success, include_cause, queries)?;
 
-    Ok(BlockAggregateResult::from_return_data(block, result.return_data))
+    Ok(BlockAggregateResult::from_return_data(
+        block,
+        result.return_data,
+    ))
 }
 
 pub fn block_try_aggregate_optional(
@@ -58,25 +66,37 @@ pub fn block_try_aggregate_optional(
     let block = env.block.height;
     let result = try_aggregate_optional(deps, include_cause, queries)?;
 
-    Ok(BlockAggregateResult::from_return_data(block, result.return_data))
+    Ok(BlockAggregateResult::from_return_data(
+        block,
+        result.return_data,
+    ))
 }
 
-pub fn aggregrate(deps: Deps, queries: Vec<Call>) -> StdResult<AggregateResult> {
-    let n = queries.len();
+pub fn aggregrate(deps: Deps, mut queries: Vec<Call>) -> StdResult<AggregateResult> {
+    let mut n = queries.len();
     let mut result: Vec<CallResult> = vec![CallResult::default(); n];
 
-    for i in 0..n {
-        let query = queries[i].clone();
-        let wasm = &process_wasm_query(query.address, query.data)?;
-        let res = deps.querier.raw_query(wasm);
-        let data = match process_query_result(res) {
+    while let Some(target) = queries.pop() {
+        n -= 1;
+
+        let data = match process_query_result(
+            deps.querier
+                .raw_query(&process_wasm_query(target.address, target.data)?),
+        ) {
             Ok(res) => res,
-            Err(err) => return Err(err.std_at_index(i)),
+            Err(err) => return Err(err.std_at_index(n)),
         };
-        result[i] = CallResult {
-            success: true,
-            data,
-        };
+
+        unsafe {
+            let p = result.as_mut_ptr();
+            ptr::write(
+                p.offset(n as isize),
+                CallResult {
+                    success: true,
+                    data,
+                },
+            );
+        }
     }
 
     Ok(AggregateResult::from_return_data(result))
@@ -86,34 +106,36 @@ pub fn try_aggregate(
     deps: Deps,
     require_success: Option<bool>,
     include_cause: Option<bool>,
-    queries: Vec<Call>,
+    mut queries: Vec<Call>,
 ) -> StdResult<AggregateResult> {
-    let n = queries.len();
+    let mut n = queries.len();
     let mut result: Vec<CallResult> = vec![CallResult::default(); n];
+    let req = require_success.unwrap_or(false);
+    let incl = include_cause.unwrap_or(false);
 
-    for i in 0..n {
-        let query = queries[i].clone();
-        let wasm = &process_wasm_query(query.address, query.data)?;
-        let res = deps.querier.raw_query(wasm);
-        result[i] = match process_query_result(res) {
-            Ok(res) => CallResult {
-                success: true,
-                data: res,
-            },
-            Err(err) => match require_success.unwrap_or(false) {
-                true => return Err(err.std_at_index(i)),
-                false => match include_cause.unwrap_or(false) {
-                    true => CallResult {
-                        success: false,
-                        data: to_binary(&err.to_string())?,
-                    },
-                    false => CallResult {
-                        success: false,
-                        data: Binary::default(),
-                    },
+    while let Some(target) = queries.pop() {
+        n -= 1;
+
+        let (success, data) = match process_query_result(
+            deps.querier
+                .raw_query(&process_wasm_query(target.address, target.data)?),
+        ) {
+            Ok(res) => (true, Some(res)),
+            Err(err) => match req {
+                true => return Err(err.std_at_index(n)),
+                false => match incl {
+                    true => (false, Some(to_binary(&err.to_string())?)),
+                    false => (false, None),
                 },
             },
         };
+
+        if let Some(data) = data {
+            unsafe {
+                let p = result.as_mut_ptr();
+                ptr::write(p.offset(n as isize), CallResult { success, data });
+            }
+        }
     }
 
     Ok(AggregateResult::from_return_data(result))
@@ -122,34 +144,35 @@ pub fn try_aggregate(
 pub fn try_aggregate_optional(
     deps: Deps,
     include_cause: Option<bool>,
-    queries: Vec<CallOptional>,
+    mut queries: Vec<CallOptional>,
 ) -> StdResult<AggregateResult> {
-    let n = queries.len();
+    let mut n = queries.len();
     let mut result: Vec<CallResult> = vec![CallResult::default(); n];
+    let incl = include_cause.unwrap_or(false);
 
-    for i in 0..n {
-        let query = queries[i].clone();
-        let wasm = &process_wasm_query(query.address, query.data)?;
-        let res = deps.querier.raw_query(wasm);
-        result[i] = match process_query_result(res) {
-            Ok(res) => CallResult {
-                success: true,
-                data: res,
-            },
-            Err(err) => match query.require_success {
-                true => return Err(err.std_at_index(i)),
-                false => match include_cause.unwrap_or(false) {
-                    true => CallResult {
-                        success: false,
-                        data: to_binary(&err.to_string())?,
-                    },
-                    false => CallResult {
-                        success: false,
-                        data: Binary::default(),
-                    },
+    while let Some(target) = queries.pop() {
+        n -= 1;
+
+        let (success, data) = match process_query_result(
+            deps.querier
+                .raw_query(&process_wasm_query(target.address, target.data)?),
+        ) {
+            Ok(res) => (true, Some(res)),
+            Err(err) => match target.require_success {
+                true => return Err(err.std_at_index(n)),
+                false => match incl {
+                    true => (false, Some(to_binary(&err.to_string())?)),
+                    false => (false, None),
                 },
             },
         };
+
+        if let Some(data) = data {
+            unsafe {
+                let p = result.as_mut_ptr();
+                ptr::write(p.offset(n as isize), CallResult { success, data });
+            }
+        }
     }
 
     Ok(AggregateResult::from_return_data(result))
