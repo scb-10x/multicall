@@ -1,12 +1,26 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::{
         contract::query,
         mock_querier::{mock_dependencies, AnotherStructResponse, MockQueryMsg},
         msg::{AggregateResult, Call, CallOptional, QueryMsg},
     };
-    use cosmwasm_std::{from_binary, testing::mock_env, to_binary, Addr, StdError};
+    use cosmwasm_std::{from_binary, testing::mock_env, to_binary, Addr, BlockInfo, Env, StdError};
     use test_case::test_case;
+
+    fn env_with_height(height: u64) -> Env {
+        let mock = mock_env();
+
+        Env {
+            block: BlockInfo {
+                height,
+                ..mock.block
+            },
+            ..mock
+        }
+    }
 
     #[test_case("1"; "number")]
     #[test_case("11231123"; "numbers")]
@@ -47,7 +61,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(base64::encode(x), q.return_data.first().unwrap().data.to_base64());
+        assert_eq!(
+            base64::encode(x),
+            q.return_data.first().unwrap().data.to_base64()
+        );
         assert_eq!(true, q.return_data.first().unwrap().success);
 
         let q: AggregateResult = from_binary(
@@ -72,9 +89,15 @@ mod tests {
         .unwrap();
 
         assert_eq!(q.return_data.len(), 2);
-        assert_eq!(base64::encode(x), q.return_data.first().unwrap().data.to_base64());
+        assert_eq!(
+            base64::encode(x),
+            q.return_data.first().unwrap().data.to_base64()
+        );
         assert_eq!(true, q.return_data.first().unwrap().success);
-        assert_eq!(base64::encode(x), q.return_data.last().unwrap().data.to_base64());
+        assert_eq!(
+            base64::encode(x),
+            q.return_data.last().unwrap().data.to_base64()
+        );
         assert_eq!(true, q.return_data.last().unwrap().success);
     }
 
@@ -112,7 +135,8 @@ mod tests {
 
         assert_eq!(q.return_data.len(), 2);
 
-        let first: AnotherStructResponse = from_binary(&q.return_data.first().unwrap().data).unwrap();
+        let first: AnotherStructResponse =
+            from_binary(&q.return_data.first().unwrap().data).unwrap();
         let last: AnotherStructResponse = from_binary(&q.return_data.last().unwrap().data).unwrap();
 
         assert_eq!(first.result, x);
@@ -183,10 +207,26 @@ mod tests {
         }
     }
 
-    #[test]
-    fn try_aggregate_optional() {
+    #[test_case(10, vec![], vec![]; "no error")]
+    #[test_case(10, vec![0, 3, 4, 5, 8], vec![]; "multiple error")]
+    #[test_case(10, vec![0, 3, 4, 5, 8], vec![1, 2, 6]; "multiple error and none require success")]
+    #[test_case(10, vec![0, 3, 4, 5, 8], vec![3]; "multiple error and some require success")]
+    #[test_case(10, vec![0, 3, 4, 5, 8], vec![0, 3, 4, 5, 8]; "multiple error and all require success")]
+    fn try_aggregate_optional(total: usize, error_at: Vec<usize>, required: Vec<usize>) {
         let deps = mock_dependencies(&[]);
         let env = mock_env();
+
+        let body = (0..total)
+            .map(|i| CallOptional {
+                require_success: false,
+                address: Addr::unchecked(""),
+                data: to_binary(&match i {
+                    _ if error_at.contains(&i) => MockQueryMsg::FailSystem,
+                    _ => MockQueryMsg::One,
+                })
+                .unwrap(),
+            })
+            .collect::<Vec<_>>();
 
         let q: AggregateResult = from_binary(
             &query(
@@ -194,68 +234,55 @@ mod tests {
                 env.clone(),
                 QueryMsg::TryAggregateOptional {
                     include_cause: Some(false),
-                    queries: vec![
-                        CallOptional {
-                            require_success: true,
-                            address: Addr::unchecked(""),
-                            data: to_binary(&MockQueryMsg::One).unwrap(),
-                        },
-                        CallOptional {
-                            require_success: true,
-                            address: Addr::unchecked(""),
-                            data: to_binary(&MockQueryMsg::Str("2".to_string())).unwrap(),
-                        },
-                        CallOptional {
-                            require_success: true,
-                            address: Addr::unchecked(""),
-                            data: to_binary(&MockQueryMsg::Str("3".to_string())).unwrap(),
-                        },
-                        CallOptional {
-                            require_success: true,
-                            address: Addr::unchecked(""),
-                            data: to_binary(&MockQueryMsg::Str("4".to_string())).unwrap(),
-                        },
-                        CallOptional {
-                            require_success: false,
-                            address: Addr::unchecked(""),
-                            data: to_binary(&MockQueryMsg::FailSystem).unwrap(),
-                        },
-                    ],
+                    queries: body,
                 },
             )
             .unwrap(),
         )
         .unwrap();
 
-        let mut it = q.return_data.iter();
-        assert_eq!(base64::encode(b"1"), it.next().unwrap().data.to_base64());
-        assert_eq!(base64::encode(b"2"), it.next().unwrap().data.to_base64());
-        assert_eq!(base64::encode(b"3"), it.next().unwrap().data.to_base64());
-        assert_eq!(base64::encode(b"4"), it.next().unwrap().data.to_base64());
-        assert_eq!(base64::encode(b""), it.next().unwrap().data.to_base64());
-        assert_eq!(None, it.next());
+        for (i, bin) in q.return_data.iter().enumerate() {
+            assert_eq!(
+                match i {
+                    _ if error_at.contains(&i) => String::new(),
+                    _ => base64::encode(b"1"),
+                },
+                bin.data.to_base64()
+            );
+        }
 
-        let err = query(
+        let body = (0..total)
+            .map(|i| CallOptional {
+                require_success: match i {
+                    _ if required.contains(&i) => true,
+                    _ => false,
+                },
+                address: Addr::unchecked(""),
+                data: to_binary(&match i {
+                    _ if error_at.contains(&i) => MockQueryMsg::FailSystem,
+                    _ => MockQueryMsg::One,
+                })
+                .unwrap(),
+            })
+            .collect::<Vec<_>>();
+
+        let q = query(
             deps.as_ref(),
             env.clone(),
             QueryMsg::TryAggregateOptional {
                 include_cause: Some(false),
-                queries: vec![
-                    CallOptional {
-                        require_success: false,
-                        address: Addr::unchecked(""),
-                        data: to_binary(&MockQueryMsg::FailContract).unwrap(),
-                    },
-                    CallOptional {
-                        require_success: true,
-                        address: Addr::unchecked(""),
-                        data: to_binary(&MockQueryMsg::FailSystem).unwrap(),
-                    },
-                ],
+                queries: body,
             },
-        )
-        .unwrap_err();
+        );
 
-        assert!(matches!(err, StdError::GenericErr { msg: _ }));
+        let err_hs = error_at.iter().collect::<HashSet<_>>();
+        let rq_hs = required.iter().collect::<HashSet<_>>();
+
+        match err_hs.intersection(&rq_hs).into_iter().next() {
+            Some(_) => assert!(matches!(q.unwrap_err(), StdError::GenericErr { msg: _ })),
+            None => assert!(
+                matches!(from_binary::<AggregateResult>(&q.unwrap()).unwrap(), x if x.return_data.len() == total)
+            ),
+        }
     }
 }
