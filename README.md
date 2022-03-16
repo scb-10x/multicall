@@ -4,7 +4,7 @@ On-chain query aggregator/batcher in Terra.
 
 ---
 
-Testnet Code Id: `52971`
+Testnet Code Id: `53261`
 
 Testnet Address: `terra1z9p02s5fkasx5qxdaes6mfyf2gt3kxuhcsd4va`
 
@@ -49,7 +49,7 @@ console.log(multicallRes)
 }
 // ---
 
-const decoded = multicallRes.datas.map((e) => {
+const decoded = multicallRes.return_data.map((e) => {
   return JSON.parse(Buffer.from(e.data, 'base64').toString())
 })
 
@@ -99,7 +99,7 @@ Example Query: [Link](https://bombay-fcd.terra.dev/wasm/contracts/terra1z9p02s5f
    }
  })
 
- const decoded = multicallRes.datas.map((e) => {
+ const decoded = multicallRes.return_data.map((e) => {
    return e.length == 0 ? null : JSON.parse(Buffer.from(e.data, 'base64').toString())
  })
 ```
@@ -129,7 +129,7 @@ const multicallRes: any = await terra.wasm.contractQuery(multicall, {
   }
 })
 
-const decoded = multicallRes.datas.map((e) => {
+const decoded = multicallRes.return_data.map((e) => {
   return e.length == 0 ? null : JSON.parse(Buffer.from(e.data, 'base64').toString())
 })
 ```
@@ -162,7 +162,7 @@ console.log(multicallRes)
 
 {
   block: 8259453,
-  datas: [
+  return_data: [
     {
       success: true,
       data: 'eyJvd25lcl9hZGRyIjoidGVycmExNmNrZXV1N2M2Z2d1NTJhOHNlMDA1bWc1YzBrZDJrbXV1bjYzY3UiLCJhdGVycmFfY29udHJhY3QiOiJ0ZXJyYTFhanQ1NTZkcHp2andsMGtsNXR6a3UzZmMzcDNrbmtnOW1rdjhqbCIsImludGVyZXN0X21vZGVsIjoidGVycmExbTI1YXF1cHNjZHcya3c0dG5xNXFsNmhleGdyMzRtcjc2YXpoNXgiLCJkaXN0cmlidXRpb25fbW9kZWwiOiJ0ZXJyYTF1NjRjZXphaDk0c3EzeWU4eTB1bmcyOHgzcHhjMzd0djhmdGg3aCIsIm92ZXJzZWVyX2NvbnRyYWN0IjoidGVycmExcWxqeGQweTNqM2drOTcwMjVxdmwzbGdxOHlndXA0Z3Nrc3ZheHYiLCJjb2xsZWN0b3JfY29udHJhY3QiOiJ0ZXJyYTFobGN0Y3JyaGNsMmF6eHpjc25zNDY3bGU4NzZjZnV6YW02anR5NCIsImRpc3RyaWJ1dG9yX2NvbnRyYWN0IjoidGVycmExejdueGVtY25tOGtwN2ZzMzNjczdnZTR3ZnVsZDMwN3Y4MGd5cGoiLCJzdGFibGVfZGVub20iOiJ1dXNkIiwibWF4X2JvcnJvd19mYWN0b3IiOiIwLjk1In0='

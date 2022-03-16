@@ -1,1 +1,1 @@
-2e27aea2d318e2ac227e0549ef097c512f1e16751c0b4e94c76d281914c0a17e  multicall.wasm
+46c747ea527af76fef0055fb0db2c50ae35ccb3c4cd694dd920ab181b60de64c  multicall.wasm
