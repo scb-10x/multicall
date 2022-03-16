@@ -5,7 +5,7 @@ mod tests {
     use crate::{
         contract::query,
         mock_querier::{mock_dependencies, AnotherStructResponse, MockQueryMsg},
-        msg::{AggregateResult, Call, CallOptional, QueryMsg},
+        msg::{AggregateResult, BlockAggregateResult, Call, CallOptional, QueryMsg},
     };
     use cosmwasm_std::{from_binary, testing::mock_env, to_binary, Addr, BlockInfo, Env, StdError};
     use test_case::test_case;
@@ -20,6 +20,98 @@ mod tests {
             },
             ..mock
         }
+    }
+
+    #[test_case(10; "block ten")]
+    #[test_case(100; "block hundred")]
+    #[test_case(1289189451295; "block random")]
+    fn block_aggregate(x: u64) {
+        let deps = mock_dependencies(&[]);
+        let env = env_with_height(x);
+
+        let err = query(
+            deps.as_ref(),
+            env.clone(),
+            QueryMsg::BlockAggregate {
+                queries: vec![Call {
+                    address: Addr::unchecked(""),
+                    data: to_binary(&MockQueryMsg::FailSystem).unwrap(),
+                }],
+            },
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, StdError::GenericErr { msg: _ }));
+
+        let q: BlockAggregateResult = from_binary(
+            &query(
+                deps.as_ref(),
+                env.clone(),
+                QueryMsg::BlockAggregate {
+                    queries: vec![Call {
+                        address: Addr::unchecked(""),
+                        data: to_binary(&MockQueryMsg::One).unwrap(),
+                    }],
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(q.block, x);
+        assert_eq!(
+            base64::encode(b"1"),
+            q.return_data.first().unwrap().data.to_base64()
+        );
+        assert_eq!(true, q.return_data.first().unwrap().success);
+
+        let q: BlockAggregateResult = from_binary(
+            &query(
+                deps.as_ref(),
+                env.clone(),
+                QueryMsg::BlockTryAggregate {
+                    require_success: None,
+                    include_cause: None,
+                    queries: vec![Call {
+                        address: Addr::unchecked(""),
+                        data: to_binary(&MockQueryMsg::One).unwrap(),
+                    }],
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(q.block, x);
+        assert_eq!(
+            base64::encode(b"1"),
+            q.return_data.first().unwrap().data.to_base64()
+        );
+        assert_eq!(true, q.return_data.first().unwrap().success);
+
+        let q: BlockAggregateResult = from_binary(
+            &query(
+                deps.as_ref(),
+                env.clone(),
+                QueryMsg::BlockTryAggregateOptional {
+                    include_cause: None,
+                    queries: vec![CallOptional {
+                        require_success: false,
+                        address: Addr::unchecked(""),
+                        data: to_binary(&MockQueryMsg::One).unwrap(),
+                    }],
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(q.block, x);
+        assert_eq!(
+            base64::encode(b"1"),
+            q.return_data.first().unwrap().data.to_base64()
+        );
+        assert_eq!(true, q.return_data.first().unwrap().success);
     }
 
     #[test_case("1"; "number")]
