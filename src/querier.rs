@@ -79,13 +79,11 @@ pub fn aggregrate(deps: Deps, mut queries: Vec<Call>) -> StdResult<AggregateResu
     while let Some(target) = queries.pop() {
         n -= 1;
 
-        let data = match process_query_result(
+        let data = process_query_result(
             deps.querier
                 .raw_query(&process_wasm_query(target.address, target.data)?),
-        ) {
-            Ok(res) => res,
-            Err(err) => return Err(err.std_at_index(n)),
-        };
+        )
+        .map_err(|i| i.std_at_index(n))?;
 
         unsafe {
             let p = result.as_mut_ptr();
