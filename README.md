@@ -6,11 +6,12 @@ On-chain query aggregator/batcher in Terra.
 
 Mainnet Code Id: `3758`
 
-Mainnet Address: `terra1y60jx2jqh5qpmcnvgz3n0zg2p6ky4mr6ax2qa5`
+Mainnet Address: [`terra1y60jx2jqh5qpmcnvgz3n0zg2p6ky4mr6ax2qa5`](https://finder.extraterrestrial.money/mainnet/contract/terra1y60jx2jqh5qpmcnvgz3n0zg2p6ky4mr6ax2qa5)
 
 Testnet Code Id: `53261`
 
-Testnet Address: `terra1z9p02s5fkasx5qxdaes6mfyf2gt3kxuhcsd4va`
+Testnet Address: [`terra1z9p02s5fkasx5qxdaes6mfyf2gt3kxuhcsd4va`]
+(https://finder.extraterrestrial.money/testnet/account/terra1z9p02s5fkasx5qxdaes6mfyf2gt3kxuhcsd4va)
 
 ## Example Usage
 
