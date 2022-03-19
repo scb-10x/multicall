@@ -2,7 +2,7 @@
 name = "multicall"
 version = "0.1.0"
 authors = ["SCB10x"]
-edition = "2022"
+edition = "2021"
 repository = "https://github.com/scb-10x/multicall"
 description = "On-chain query aggregator/batcher in Terra"
 
