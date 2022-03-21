@@ -57,8 +57,12 @@ const decoded = multicallRes.return_data.map((e) => {
   return JSON.parse(Buffer.from(e.data, "base64").toString())
 })
 
-console.log(decoded)[
-  // ---
+
+console.log(decoded)
+
+// ---
+
+[
   ({
     owner_addr: "terra16ckeuu7c6ggu52a8se005mg5c0kd2kmuun63cu",
     aterra_contract: "terra1ajt556dpzvjwl0kl5tzku3fc3p3knkg9mkv8jl",
