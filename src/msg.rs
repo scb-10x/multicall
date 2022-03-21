@@ -55,7 +55,7 @@ pub struct CallOptional {
     pub data: Binary,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema, Default)]
 pub struct CallResult {
     pub success: bool,
     pub data: Binary,
@@ -81,14 +81,5 @@ impl AggregateResult {
 impl BlockAggregateResult {
     pub fn from_return_data(block: u64, return_data: Vec<CallResult>) -> BlockAggregateResult {
         BlockAggregateResult { block, return_data }
-    }
-}
-
-impl Default for CallResult {
-    fn default() -> Self {
-        Self {
-            success: false,
-            data: Default::default(),
-        }
     }
 }

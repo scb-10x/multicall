@@ -31,9 +31,9 @@ impl QueryError {
     }
 }
 
-impl Into<String> for QueryError {
-    fn into(self) -> String {
-        self.to_string()
+impl From<QueryError> for String {
+    fn from(q: QueryError) -> Self {
+        q.to_string()
     }
 }
 

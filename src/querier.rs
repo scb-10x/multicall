@@ -33,7 +33,10 @@ pub fn block_aggregrate(
     let block = env.block.height;
     let result = aggregrate(deps, queries)?;
 
-    Ok(BlockAggregateResult::from_return_data(block, result.return_data))
+    Ok(BlockAggregateResult::from_return_data(
+        block,
+        result.return_data,
+    ))
 }
 
 pub fn block_try_aggregrate(
@@ -46,7 +49,10 @@ pub fn block_try_aggregrate(
     let block = env.block.height;
     let result = try_aggregate(deps, require_success, include_cause, queries)?;
 
-    Ok(BlockAggregateResult::from_return_data(block, result.return_data))
+    Ok(BlockAggregateResult::from_return_data(
+        block,
+        result.return_data,
+    ))
 }
 
 pub fn block_try_aggregate_optional(
@@ -58,7 +64,10 @@ pub fn block_try_aggregate_optional(
     let block = env.block.height;
     let result = try_aggregate_optional(deps, include_cause, queries)?;
 
-    Ok(BlockAggregateResult::from_return_data(block, result.return_data))
+    Ok(BlockAggregateResult::from_return_data(
+        block,
+        result.return_data,
+    ))
 }
 
 pub fn aggregrate(deps: Deps, queries: Vec<Call>) -> StdResult<AggregateResult> {
