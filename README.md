@@ -2,7 +2,9 @@
 
 On-chain query aggregator/batcher in Terra.
 
----
+<img width="831" alt="Artboard_12x" src="https://user-images.githubusercontent.com/921194/159640734-c8f8a529-6848-4f75-bf3d-71c9d44eab21.png">
+
+----
 
 Mainnet Code Id: `3758`
 
