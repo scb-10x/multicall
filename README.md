@@ -6,13 +6,17 @@ On-chain query aggregator/batcher in Terra.
 
 ----
 
-Mainnet Code Id: `3758`
+Mainnet (Phoenix) Code Id: `381`
 
-Mainnet Address: [`terra1y60jx2jqh5qpmcnvgz3n0zg2p6ky4mr6ax2qa5`](https://finder.extraterrestrial.money/mainnet/contract/terra1y60jx2jqh5qpmcnvgz3n0zg2p6ky4mr6ax2qa5)
+Mainnet Address: [`terra1g5puatcgawc58d95rflj9sxrl8wsted6n66yp6pndy69rc40k39snsefs3`](https://terrasco.pe/mainnet/address/terra1g5puatcgawc58d95rflj9sxrl8wsted6n66yp6pndy69rc40k39snsefs3)
 
-Testnet Code Id: `53261`
+Testnet (Pisco) Code Id: `3616`
 
-Testnet Address: [`terra1z9p02s5fkasx5qxdaes6mfyf2gt3kxuhcsd4va`](https://finder.extraterrestrial.money/testnet/account/terra1z9p02s5fkasx5qxdaes6mfyf2gt3kxuhcsd4va)
+Testnet Address: [`terra1s2crcfhahev6dclcv6wyeg3sd0c5nj3jrtv40nf0wpey6elk6pvqt2r562`](https://finder.terra.money/testnet/address/terra1s2crcfhahev6dclcv6wyeg3sd0c5nj3jrtv40nf0wpey6elk6pvqt2r562)
+
+Classic (Columbus) Code Id: `3758`
+
+Classic Address: [`terra1y60jx2jqh5qpmcnvgz3n0zg2p6ky4mr6ax2qa5`](https://finder.terra.money/classic/address/terra1y60jx2jqh5qpmcnvgz3n0zg2p6ky4mr6ax2qa5)
 
 ## Example Usage
 
